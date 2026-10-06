@@ -1,0 +1,1 @@
+"""Course Recap Generator package."""
