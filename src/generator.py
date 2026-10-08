@@ -5,7 +5,7 @@ Course PDF -> PDF Extraction MCP Server -> Extracted Content -> Main Agent (cour
 """
 
 from pathlib import Path
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, List, Union
 from google import genai
 
 from src.config import PROJECT_ROOT, OUTPUTS_DIR, DEFAULT_MODEL, get_gemini_api_key
@@ -22,14 +22,17 @@ def load_course_recap_skill() -> str:
 
 
 def generate_course_recap(
-    pdf_path: str | Path,
+    pdf_path: Union[str, Path],
     output_path: Path | None = None,
     model: str = DEFAULT_MODEL,
 ) -> Tuple[Path, str]:
-    """Execute the complete end-to-end course recap pipeline.
+    """Execute the complete end-to-end course recap pipeline for an individual course file.
+
+    Workflow for each file:
+    pdf_file -> PDF Extraction MCP Server -> course-recap Skill -> Main Agent -> course-reviewer Sub-Agent -> {file.stem}_recap.md
 
     Args:
-        pdf_path: Path to the real course PDF file.
+        pdf_path: Path to an individual course PDF/document file.
         output_path: Optional destination path for the markdown recap.
         model: Gemini model identifier (default: gemini-3.8-flash).
 
@@ -44,19 +47,20 @@ def generate_course_recap(
     client = genai.Client(api_key=api_key)
 
     # 1. Extract real PDF content using the ONE MCP server
-    print(f"[*] Step 1/4: Invoking PDF Extraction MCP Server for {pdf_file.name}...")
+    print(f"[*] Step 1/4: Invoking PDF Extraction MCP Server for: {pdf_file.name}...")
     extracted_data = extract_pdf_via_mcp(pdf_file)
     meta = extracted_data.get("metadata", {})
-    full_text = extracted_data.get("full_text", "")
+    doc_text = extracted_data.get("full_text", "")
     page_count = meta.get("page_count", len(extracted_data.get("pages", [])))
-    print(
-        f"    [+] Successfully extracted {len(full_text):,} characters across {page_count} pages."
-    )
 
-    if not full_text.strip():
+    if not doc_text.strip():
         raise ValueError(
-            f"No readable text could be extracted from {pdf_file.name}. Ensure it is not a scanned/image-only PDF."
+            f"No readable text could be extracted from '{pdf_file.name}'. Ensure it is not a scanned/image-only PDF."
         )
+
+    print(
+        f"    [+] Successfully extracted {len(doc_text):,} characters across {page_count} pages from {pdf_file.name}."
+    )
 
     # 2. Load the ONE custom reusable skill: course-recap
     print("[*] Step 2/4: Loading custom 'course-recap' skill...")
@@ -72,20 +76,34 @@ def generate_course_recap(
 {skill_instructions}
 --- END SKILL GUIDELINES ---
 
-Produce a detailed topic-by-topic course summary and a Mermaid concept relationship diagram (`flowchart TD`) based strictly on the following course source material:
+Produce a detailed topic-by-topic course summary and a Mermaid concept relationship diagram (`flowchart TD`) based strictly on the following course source material from {pdf_file.name}:
 
 --- COURSE SOURCE MATERIAL ---
-{full_text}
+{doc_text}
 --- END SOURCE MATERIAL ---
 """
 
-    draft_response = client.models.generate_content(
-        model=model,
-        contents=main_prompt,
-    )
-    draft_recap = draft_response.text or ""
+    import time
+
+    draft_recap = ""
+    for attempt in range(1, 4):
+        try:
+            draft_response = client.models.generate_content(
+                model=model,
+                contents=main_prompt,
+            )
+            draft_recap = draft_response.text or ""
+            if draft_recap.strip():
+                break
+        except Exception as exc:
+            if ("503" in str(exc) or "429" in str(exc) or "UNAVAILABLE" in str(exc)) and attempt < 3:
+                print(f"    [!] Gemini API high demand spike (attempt {attempt}/3). Retrying in {attempt * 3}s...")
+                time.sleep(attempt * 3)
+            else:
+                raise
+
     if not draft_recap.strip():
-        raise RuntimeError("Main agent failed to generate a draft recap.")
+        raise RuntimeError(f"Main agent failed to generate a draft recap for {pdf_file.name}.")
 
     print(f"    [+] Draft recap generated ({len(draft_recap):,} characters).")
 
@@ -95,7 +113,7 @@ Produce a detailed topic-by-topic course summary and a Mermaid concept relations
     )
     final_recap = review_recap_with_subagent(
         client=client,
-        source_content=full_text,
+        source_content=doc_text,
         draft_recap=draft_recap,
         model=model,
     )
@@ -115,4 +133,5 @@ Produce a detailed topic-by-topic course summary and a Mermaid concept relations
     print(f"[+] Output written to: {target_path}")
 
     return target_path, final_recap
+
 

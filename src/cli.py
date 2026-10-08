@@ -71,6 +71,18 @@ def command_recap(args: argparse.Namespace) -> int:
         return 1
 
 
+def command_serve(args: argparse.Namespace) -> int:
+    """Launch the web frontend server."""
+    from src.app import create_app
+    app = create_app()
+    print("=" * 60)
+    print("Course Recap Generator - Web Interface")
+    print(f"URL: http://{args.host}:{args.port}")
+    print("=" * 60)
+    app.run(host=args.host, port=args.port, debug=args.debug)
+    return 0
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="course-recap",
@@ -91,15 +103,25 @@ def main() -> None:
     # Command: check
     subparsers.add_parser("check", help="Verify configuration, MCP server, skill, and sub-agent")
 
+    # Command: serve
+    serve_parser = subparsers.add_parser("serve", help="Launch the local web frontend interface")
+    serve_parser.add_argument("--port", "-p", type=int, default=5000, help="Port to listen on (default: 5000)")
+    serve_parser.add_argument("--host", type=str, default="127.0.0.1", help="Host to bind to (default: 127.0.0.1)")
+    serve_parser.add_argument("--no-debug", dest="debug", action="store_false", help="Disable debug / auto-reload mode")
+    serve_parser.set_defaults(debug=True)
+
     args = parser.parse_args()
 
     if args.command == "check":
         sys.exit(command_check())
     elif args.command == "recap":
         sys.exit(command_recap(args))
+    elif args.command == "serve":
+        sys.exit(command_serve(args))
     else:
         parser.print_help()
         sys.exit(0)
+
 
 
 if __name__ == "__main__":

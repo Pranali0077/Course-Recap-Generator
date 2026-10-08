@@ -32,17 +32,74 @@ Ensure thorough coverage of all significant topics covered in the lecture withou
 Construct a valid Mermaid diagram visualizing the conceptual architecture:
 - Use `flowchart TD` (or `graph TD`).
 - Connect topics according to their logical dependencies, conceptual prerequisites, and structural hierarchy.
-- Use directional arrows with descriptive labels where helpful:
-  ```mermaid
-  flowchart TD
-      A["Foundational Concept"] -->|Prerequisite for| B["Core Technique"]
-      B -->|Implemented by| C["Practical Application"]
-      B -->|Optimized via| D["Advanced Strategy"]
-  ```
-- **Syntax Safety Rules**:
-  - Enclose node labels in double quotes inside brackets: `id["Concept Name"]`.
-  - Avoid special characters outside of quotes.
-  - Ensure all node IDs are unique and alphanumeric.
+- Use directional arrows with descriptive labels where helpful.
+
+### Diagram Design Goal: Quick-Revision Visual
+The diagram should function as a **QUICK-REVISION VISUAL**. A learner who has very little time should be able to look at the diagram and immediately understand:
+- What the major concept is
+- What its important components, methods, and types are
+- What each component means and does
+- How concepts are related and ordered
+- What the key distinctions between concepts are
+
+The diagram must communicate BOTH:
+1. **Concept structure**
+2. **Concept meaning**
+
+Do NOT make the diagram merely a bare list of topic names.
+
+### Node Label Format
+For all important concepts, components, techniques, methods, and processes, use multiline node labels with a concise description:
+
+```
+NodeID["Concept Name<br/>Short 2–3 word description"]
+```
+
+The concept title appears on the top line, and the short description appears directly below it via `<br/>`.
+
+### Description Rules
+1. **Word Count**: Descriptions should normally be **2–3 words** (maximum 4 words only when strictly necessary for clarity).
+2. **Visual Distinction**: Keep the concept name and description visually distinct using `<br/>` inside double quotes.
+3. **Core Role & Meaning**: The description must concisely summarize the essential meaning, role, purpose, characteristic, or distinction of the concept.
+4. **Source Ground Truth**: Derive descriptions **ONLY** from the uploaded course material. Do NOT invent facts, definitions, or explanations not present in the source.
+5. **No Clutter or Paragraphs**: Do NOT copy long sentences, paragraphs, or verbose definitions into nodes.
+6. **Selective Application**: Apply descriptions to important concepts, components, methods, types, processes, and relationships. Do not turn every minor detail or sentence into an individual node. Keep the diagram clean and readable.
+
+### Contrast Examples
+
+**Instead of bare topic names (Avoid):**
+```mermaid
+flowchart TD
+    A["Prompt Structure"] --> B["Instructions"]
+    A --> C["Context"]
+    A --> D["Input"]
+    A --> E["Output"]
+```
+
+**Use descriptive nodes with 2–3 word summaries (Required):**
+```mermaid
+flowchart TD
+    A["Prompt Structure<br/>Core input anatomy"] --> B["Instructions<br/>Defines task"]
+    A --> C["Context<br/>Provides background"]
+    A --> D["Input<br/>User data"]
+    A --> E["Output<br/>Expected response"]
+```
+
+**Technique comparison example:**
+```mermaid
+flowchart TD
+    P["Prompting Techniques<br/>Model input strategies"]
+    P --> Z["Zero-Shot<br/>No examples"]
+    P --> O["One-Shot<br/>Single example"]
+    P --> F["Few-Shot<br/>Multiple examples"]
+    P --> C["Chain-of-Thought<br/>Step-by-step reasoning"]
+```
+
+### Syntax Safety Rules
+- Enclose node labels in double quotes inside brackets: `id["Concept Name<br/>2–3 word description"]`.
+- Ensure all node IDs are unique and alphanumeric (e.g., `A`, `B1`, `ZeroShot`).
+- Avoid unescaped special characters outside of quotes.
+- Always use `flowchart TD`.
 
 ---
 
@@ -74,6 +131,8 @@ Produce clean GitHub-flavored Markdown:
 
 ```mermaid
 flowchart TD
-    ...
+    A["Main Concept<br/>Short description"] -->|Relationship| B["Sub-Concept<br/>2-3 word description"]
+    B --> C["Core Technique<br/>Concise summary"]
 ```
 ```
+

@@ -7,3 +7,5 @@ outputs/*.md
 !outputs/.gitkeep
 data/*.pdf
 !data/.gitkeep
+data/uploads/
+

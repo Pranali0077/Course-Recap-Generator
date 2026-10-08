@@ -23,8 +23,10 @@ Audit Directives:
    - Review the Mermaid concept relationship diagram (`flowchart TD`).
    - Ensure every concept node is genuinely part of the course.
    - Verify that dependency edges, prerequisite arrows, and hierarchical groupings reflect the logical relationships taught in the source material.
+   - Ensure important concept nodes include concise 2–3 word descriptions summarizing their immediate meaning/role using multiline format: NodeID["Concept Name<br/>Short description"] (e.g., A["Zero-Shot<br/>No examples"]).
+   - Verify descriptions are derived strictly from the source and avoid bare titles or long paragraph clutter.
    - Remove any invented or misleading links.
-   - Validate Mermaid syntax (proper node naming, enclosed in double quotes inside brackets e.g. NodeID["Concept Label"]).
+   - Validate Mermaid syntax (proper node naming, enclosed in double quotes inside brackets).
 
 3. Content Structure:
    - Preserve the clean structure:
@@ -69,13 +71,22 @@ Verify and correct the Mermaid concept diagram.
 Output the complete, final polished course recap in GitHub-flavored Markdown.
 """
 
-    interaction = client.interactions.create(
-        model=model,
-        system_instruction=COURSE_REVIEWER_SYSTEM_PROMPT,
-        input=review_prompt,
-    )
+    import time
 
-    if not interaction.output_text:
-        raise RuntimeError("course-reviewer sub-agent did not produce any output text.")
+    for attempt in range(1, 4):
+        try:
+            interaction = client.interactions.create(
+                model=model,
+                system_instruction=COURSE_REVIEWER_SYSTEM_PROMPT,
+                input=review_prompt,
+            )
+            if interaction.output_text:
+                return interaction.output_text.strip()
+        except Exception as exc:
+            if ("503" in str(exc) or "429" in str(exc) or "UNAVAILABLE" in str(exc)) and attempt < 3:
+                print(f"    [!] Sub-agent API high demand spike (attempt {attempt}/3). Retrying in {attempt * 3}s...")
+                time.sleep(attempt * 3)
+            else:
+                raise
 
-    return interaction.output_text.strip()
+    raise RuntimeError("course-reviewer sub-agent did not produce any output text.")
